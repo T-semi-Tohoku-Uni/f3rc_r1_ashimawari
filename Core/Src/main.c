@@ -188,8 +188,7 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 		if (RxHeader.Identifier == 0x300) {
 			vel_x = (int8_t)RxData[0];
 			vel_y = (int8_t)RxData[1];
-			omega_c = -1*(uint8_t)RxData[4];
-			omega_c = (uint8_t)RxData[5];
+			omega_c = (uint8_t)RxData[5] - (uint8_t)RxData[4];
 			if ((RxData[7] & 0x2) == 0x2){
 				is_R1 = true;
 			}
@@ -378,7 +377,7 @@ int main(void)
 	  robomas[L_F-1].trgVel =  (int)(-1*robomas[L_F-1].w*36*60/(2*PI));
 	  robomas[L_B-1].trgVel = (int)(-1*robomas[L_B-1].w*36*60/(2*PI));
 
-	  printf("act:%d,(%d,%d)\r\n", robomas[0].actVel, vel_x, vel_y);
+	  printf("act:%d,(%d,%d), omega:%d\r\n", robomas[0].actVel, vel_x, vel_y, omega_c);
 	  HAL_Delay(1);
     /* USER CODE END WHILE */
 
