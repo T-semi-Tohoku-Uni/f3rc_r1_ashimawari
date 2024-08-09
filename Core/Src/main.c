@@ -50,6 +50,9 @@ typedef struct{
 #define L_B 2
 
 #define PI 3.1415
+
+#define true 1
+#define false 0
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -86,7 +89,7 @@ uint8_t TxData_motor[8] = {};
 uint8_t RxData_motor[8] = {};
 uint32_t TxMailbox;
 
-volatile int16_t vel_x = 0, vel_y = 0;
+volatile int16_t vel_x = 0, vel_y = 0, omega_c = 0;
 
 volatile int16_t purpose = 64;
 motor robomas[4] = {
@@ -98,6 +101,11 @@ motor robomas[4] = {
 
 volatile float k_p = 7, k_i = 0.5, k_d = 0.0001;
 volatile float vx = 0, vy = 0, omega = 0;
+
+
+volatile uint8_t is_Right = 0, is_Left = 0, is_Up = 0, is_Down = 0, is_Circle = 0, is_Square = 0, is_Triangle = 0;
+volatile uint8_t is_Cross = 0, is_UpRight = 0, is_DownRight = 0, is_UpLeft = 0, is_DownLeft = 0, is_R1 = 0, is_L1 = 0;
+volatile uint8_t is_Share = 0, is_Options = 0, is_R3 = 0, is_L3 = 0, is_PsButton = 0, is_Touchpad = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -180,7 +188,14 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 		if (RxHeader.Identifier == 0x300) {
 			vel_x = (int8_t)RxData[0];
 			vel_y = (int8_t)RxData[1];
-
+			omega_c = -1*(uint8_t)RxData[4];
+			omega_c = (uint8_t)RxData[5];
+			if ((RxData[7] & 0x2) == 0x2){
+				is_R1 = true;
+			}
+			if ((RxData[7] & 0x1) == 0x1){
+				is_L1 = true;
+			}
 		}
 		if (RxHeader.Identifier == 0x301) {
 			if ((int8_t)RxData[1] == 1) {
@@ -356,6 +371,7 @@ int main(void)
 	  }
 	  vx = vel_x*0.01;
 	  vy = vel_y*0.01;
+	  omega = omega_c/100;
 	  omni_calc(0 ,vx, vy, omega, &robomas[R_F-1].w, &robomas[L_F-1].w, &robomas[L_B-1].w, &robomas[R_B-1].w);
 	  robomas[R_F-1].trgVel = (int)(-1*robomas[R_F-1].w*36*60/(2*PI));
 	  robomas[R_B-1].trgVel = (int)(-1*robomas[R_B-1].w*36*60/(2*PI));
