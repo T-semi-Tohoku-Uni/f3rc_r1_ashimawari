@@ -121,39 +121,7 @@ static void MX_TIM6_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	if(htim == &htim6){
 
-		for (int i=0; i<=3; i++){
-			robomas[i].hensa = robomas[i].trgVel - robomas[i].actVel;
-			if (robomas[i].hensa >= 1000) robomas[i].hensa = 1000;
-			else if (robomas[i].hensa <= -1000) robomas[i].hensa = -1000;
-			float d = (robomas[i].actVel - robomas[i].p_actVel) / 0.001;
-			robomas[i].ind += robomas[i].hensa*0.1;
-			if (d >= 30000) d = 30000;
-			else if (d <= -30000) d = -30000;
-			if (robomas[i].ind >= 10000) robomas[i].ind = 10000;
-			else if (robomas[i].ind <= -10000) robomas[i].ind = -10000;
-
-
-			float t = k_p*robomas[i].hensa;
-			if (t>=10000) t = 10000;
-			else if (t<=-10000) t = -10000;
-			robomas[i].cu = (int16_t)(t+k_i*robomas[i].ind+k_d*d);
-			if (robomas[i].cu <= -10000) robomas[i].cu = -10000;
-			else if (robomas[i].cu >= 10000) robomas[i].cu = 10000;
-
-
-			TxData_motor[i*2] = (robomas[i].cu) >> 8;
-			TxData_motor[i*2+1] = (uint8_t)((robomas[i].cu) & 0xff);
-			robomas[i].p_actVel = robomas[i].actVel;
-		}
-		if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan3, &TxHeader_motor, TxData_motor) != HAL_OK){
-			printf("addmassage is error\r\n");
-			Error_Handler();
-		}
-	}
-}
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs){
 	if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET) {
@@ -305,6 +273,54 @@ void omni_calc(float theta,float vx,float vy,float omega,float *w0,float *w1,flo
 	*w3 = (arr[3][0] * v[0] + arr[3][1] * v[1] + arr[3][2] * v[2]) / r;
 }
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	if(htim == &htim6){
+		if (vel_x < 10 && vel_x > -10){
+			vel_x = 0;
+		}
+		if (vel_y < 10 && vel_y > -10){
+			vel_y = 0;
+		}
+		vx = vel_x*0.01;
+		vy = vel_y*0.01;
+		omega = omega_c/100;
+		omni_calc(0 ,vx, vy, omega, &robomas[R_F-1].w, &robomas[L_F-1].w, &robomas[L_B-1].w, &robomas[R_B-1].w);
+		robomas[R_F-1].trgVel = (int)(-1*robomas[R_F-1].w*36*60/(2*PI));
+		robomas[R_B-1].trgVel = (int)(-1*robomas[R_B-1].w*36*60/(2*PI));
+		robomas[L_F-1].trgVel =  (int)(-1*robomas[L_F-1].w*36*60/(2*PI));
+		robomas[L_B-1].trgVel = (int)(-1*robomas[L_B-1].w*36*60/(2*PI));
+
+		for (int i=0; i<=3; i++){
+			robomas[i].hensa = robomas[i].trgVel - robomas[i].actVel;
+			if (robomas[i].hensa >= 1000) robomas[i].hensa = 1000;
+			else if (robomas[i].hensa <= -1000) robomas[i].hensa = -1000;
+			float d = (robomas[i].actVel - robomas[i].p_actVel) / 0.001;
+			robomas[i].ind += robomas[i].hensa*0.1;
+			if (d >= 30000) d = 30000;
+			else if (d <= -30000) d = -30000;
+			if (robomas[i].ind >= 10000) robomas[i].ind = 10000;
+			else if (robomas[i].ind <= -10000) robomas[i].ind = -10000;
+
+
+			float t = k_p*robomas[i].hensa;
+			if (t>=10000) t = 10000;
+			else if (t<=-10000) t = -10000;
+			robomas[i].cu = (int16_t)(t+k_i*robomas[i].ind+k_d*d);
+			if (robomas[i].cu <= -10000) robomas[i].cu = -10000;
+			else if (robomas[i].cu >= 10000) robomas[i].cu = 10000;
+
+
+			TxData_motor[i*2] = (robomas[i].cu) >> 8;
+			TxData_motor[i*2+1] = (uint8_t)((robomas[i].cu) & 0xff);
+			robomas[i].p_actVel = robomas[i].actVel;
+		}
+		if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan3, &TxHeader_motor, TxData_motor) != HAL_OK){
+			printf("addmassage is error\r\n");
+			Error_Handler();
+		}
+	}
+}
+
 int _write(int file, char *ptr, int len)
 {
     HAL_UART_Transmit(&huart2,(uint8_t *)ptr,len,10);
@@ -347,7 +363,6 @@ int main(void)
   MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
   printf("start\r\n");
-
   FDCAN_motor_RxTxSettings();
   printf("can_motor_start\r\n");
   FDCAN_RxTxSettings();
@@ -362,20 +377,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if (vel_x < 10 && vel_x > -10){
-		  vel_x = 0;
-	  }
-	  if (vel_y < 10 && vel_y > -10){
-		  vel_y = 0;
-	  }
-	  vx = vel_x*0.01;
-	  vy = vel_y*0.01;
-	  omega = omega_c/100;
-	  omni_calc(0 ,vx, vy, omega, &robomas[R_F-1].w, &robomas[L_F-1].w, &robomas[L_B-1].w, &robomas[R_B-1].w);
-	  robomas[R_F-1].trgVel = (int)(-1*robomas[R_F-1].w*36*60/(2*PI));
-	  robomas[R_B-1].trgVel = (int)(-1*robomas[R_B-1].w*36*60/(2*PI));
-	  robomas[L_F-1].trgVel =  (int)(-1*robomas[L_F-1].w*36*60/(2*PI));
-	  robomas[L_B-1].trgVel = (int)(-1*robomas[L_B-1].w*36*60/(2*PI));
+
 
 	  printf("act:%d,(%d,%d), omega:%d\r\n", robomas[0].actVel, vel_x, vel_y, omega_c);
 	  HAL_Delay(1);
