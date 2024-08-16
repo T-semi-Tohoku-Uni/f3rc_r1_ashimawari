@@ -106,6 +106,8 @@ volatile float vx = 0, vy = 0, omega = 0;
 volatile uint8_t is_Right = 0, is_Left = 0, is_Up = 0, is_Down = 0, is_Circle = 0, is_Square = 0, is_Triangle = 0;
 volatile uint8_t is_Cross = 0, is_UpRight = 0, is_DownRight = 0, is_UpLeft = 0, is_DownLeft = 0, is_R1 = 0, is_L1 = 0;
 volatile uint8_t is_Share = 0, is_Options = 0, is_R3 = 0, is_L3 = 0, is_PsButton = 0, is_Touchpad = 0;
+
+volatile int8_t b_x, b_y;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -157,17 +159,39 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 			vel_x = (int8_t)RxData[0];
 			vel_y = (int8_t)RxData[1];
 			omega_c = (uint8_t)RxData[5] - (uint8_t)RxData[4];
-			if ((RxData[7] & 0x2) == 0x2){
-				is_R1 = true;
+			if ((RxData[6] & 0x40) == 0x40){
+				is_Right = true;
 			}
-			if ((RxData[7] & 0x1) == 0x1){
-				is_L1 = true;
+			else {
+				is_Right = false;
+			}
+			if ((RxData[6] & 0x20) == 0x20){
+				is_Left = true;
+			}
+			else {
+				is_Left = false;
+			}
+			if ((RxData[6] & 0x10) == 0x10){
+				is_Up = true;
+			}
+			else {
+				is_Up = false;
+			}
+			if ((RxData[6] & 0x8) == 0x8){
+				is_Down = true;
+			}
+			else {
+				is_Down = false;
 			}
 		}
 		if (RxHeader.Identifier == 0x301) {
 			if ((int8_t)RxData[1] == 1) {
 				vel_x = 0;
 				vel_y = 0;
+				is_Right = false;
+				is_Left = false;
+				is_Up = false;
+				is_Down = false;
 			}
 		}
 
@@ -284,6 +308,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		vx = vel_x*0.01;
 		vy = vel_y*0.01;
 		omega = omega_c/100;
+
+		if (is_Right){
+			vel_x += 0.3;
+		}
+		if (is_Left){
+			vel_x -= 0.3;
+		}
+		if (is_Up){
+			vel_y += 0.3;
+		}
+		if (is_Down){
+			vel_y -= 0.3;
+		}
+
 		omni_calc(0 ,vx, vy, omega, &robomas[R_F-1].w, &robomas[L_F-1].w, &robomas[L_B-1].w, &robomas[R_B-1].w);
 		robomas[R_F-1].trgVel = (int)(-1*robomas[R_F-1].w*36*60/(2*PI));
 		robomas[R_B-1].trgVel = (int)(-1*robomas[R_B-1].w*36*60/(2*PI));
