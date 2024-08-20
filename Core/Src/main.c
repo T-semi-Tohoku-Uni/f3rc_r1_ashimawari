@@ -310,16 +310,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		omega = omega_c/100;
 
 		if (is_Right){
-			vel_x += 0.3;
+			vx += 0.1;
 		}
 		if (is_Left){
-			vel_x -= 0.3;
+			vx -= 0.1;
 		}
 		if (is_Up){
-			vel_y += 0.3;
+			vy += 0.1;
 		}
 		if (is_Down){
-			vel_y -= 0.3;
+			vy -= 0.1;
 		}
 
 		omni_calc(0 ,vx, vy, omega, &robomas[R_F-1].w, &robomas[L_F-1].w, &robomas[L_B-1].w, &robomas[R_B-1].w);
