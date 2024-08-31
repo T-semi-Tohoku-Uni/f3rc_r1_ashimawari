@@ -110,8 +110,10 @@ volatile uint8_t is_Share = 0, is_Options = 0, is_R3 = 0, is_L3 = 0, is_PsButton
 
 volatile int8_t b_x, b_y;
 
-volatile uint8_t Emergencystate=2;//0 正常 1 異常
-volatile uint8_t zoom=1;
+volatile uint8_t Emergencystate = 2;//0 正常 1 異常
+volatile uint8_t zoom = 1;
+volatile int8_t inversion = 1;
+volatile uint8_t invertime = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -194,6 +196,16 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 			}else {
 				zoom = 1;
 			}
+			printf("%d",invertime);
+			if(invertime > 100){
+				printf("inver\r\n");
+				invertime = 100;
+				if((RxData[6] & 0x02) == 0x02){
+					inversion *= -1;
+					invertime = 0;
+				}
+			}
+			invertime++;
 		}
 		if (RxHeader.Identifier == 0x301) {
 			if ((int8_t)RxData[1] == 1) {
@@ -333,6 +345,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 			vy = -0.1*zoom;
 		}
 
+		vx *= inversion;
+		vy *= inversion;
+
 		omni_calc(0 ,vx, vy, omega, &robomas[R_F-1].w, &robomas[L_F-1].w, &robomas[L_B-1].w, &robomas[R_B-1].w);
 		robomas[R_F-1].trgVel = (int)(-1*robomas[R_F-1].w*36*60/(2*PI));
 		robomas[R_B-1].trgVel = (int)(-1*robomas[R_B-1].w*36*60/(2*PI));
@@ -438,7 +453,7 @@ int main(void)
   {
 
 
-	  printf("act:%d,(%d,%d), omega:%d\r\n", robomas[0].actVel, vel_x, vel_y, omega_c);
+	  //printf("act:%d,(%d,%d), omega:%d\r\n", robomas[0].actVel, vel_x, vel_y, omega_c);
 	  HAL_Delay(1);
     /* USER CODE END WHILE */
 
