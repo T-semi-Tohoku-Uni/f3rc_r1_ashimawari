@@ -111,6 +111,7 @@ volatile uint8_t is_Share = 0, is_Options = 0, is_R3 = 0, is_L3 = 0, is_PsButton
 volatile int8_t b_x, b_y;
 
 volatile uint8_t Emergencystate=2;//0 正常 1 異常
+volatile uint8_t zoom=1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -187,6 +188,11 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 			}
 			else {
 				is_Down = false;
+			}
+			if((RxData[6] & 0x01) == 0x01){
+				zoom = 3;
+			}else {
+				zoom = 1;
 			}
 		}
 		if (RxHeader.Identifier == 0x301) {
@@ -315,16 +321,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		omega = omega_c/100;
 
 		if (is_Right){
-			vx += 0.1;
+			vx = 0.1*zoom;
 		}
 		if (is_Left){
-			vx -= 0.1;
+			vx = -0.1*zoom;
 		}
 		if (is_Up){
-			vy += 0.1;
+			vy = 0.1*zoom;
 		}
 		if (is_Down){
-			vy -= 0.1;
+			vy = -0.1*zoom;
 		}
 
 		omni_calc(0 ,vx, vy, omega, &robomas[R_F-1].w, &robomas[L_F-1].w, &robomas[L_B-1].w, &robomas[R_B-1].w);
