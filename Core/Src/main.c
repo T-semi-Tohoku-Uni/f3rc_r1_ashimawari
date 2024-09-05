@@ -196,6 +196,30 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 			}else {
 				zoom = 1;
 			}
+			if ((RxData[7] & 0x04) == 0x04){
+				is_DownLeft = true;
+			}
+			else {
+				is_DownLeft = false;
+			}
+			if ((RxData[7] & 0x08) == 0x08){
+				is_UpLeft = true;
+			}
+			else {
+				is_UpLeft = false;
+			}
+			if ((RxData[7] & 0x0f) == 0x0f){
+				is_DownRight = true;
+			}
+			else {
+				is_DownRight = false;
+			}
+			if ((RxData[7] & 0x10) == 0x10){
+				is_UpRight = true;
+			}
+			else {
+				is_UpRight = false;
+			}
 			printf("%d",invertime);
 			if(invertime > 100){
 				printf("inver\r\n");
@@ -343,6 +367,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		}
 		if (is_Down){
 			vy = -0.1*zoom;
+		}
+		if (is_UpRight){
+			vx = 0.1*zoom;
+			vy = 0.1*zoom;
+		}
+		if (is_DownLeft){
+			vx = -0.1*zoom;
+			vy = -0.1*zoom;
+		}
+		if (is_UpLeft){
+			vy = 0.1*zoom;
+			vx = -0.1*zoom;
+		}
+		if (is_DownRight){
+			vy = -0.1*zoom;
+			vx = 0.1*zoom;
 		}
 
 		vx *= inversion;
